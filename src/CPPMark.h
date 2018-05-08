@@ -10,13 +10,6 @@
 
 using std::string;
 
-
-class State {
-    string src;
-    std::vector<Token> tokens;
-    bool inlineMode = false;
-};
-
 class CPPMark {
 public:
     explicit CPPMark(string mdStr);

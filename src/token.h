@@ -14,9 +14,6 @@ using std::string;
 class Token {
 public:
     string type;
-    string tag;
-    std::vector<std::pair<string, string>> attrs;
-
     int level;
     string language;
     string text;

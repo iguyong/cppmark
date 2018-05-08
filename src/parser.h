@@ -15,8 +15,6 @@
 
 class Link{
 public:
-//    Link(std::string href, std::string title):href(href),title(title){}
-//    Link& operator=(Link& link) = default;
     string href;
     string title;
 };
@@ -28,10 +26,10 @@ public:
     Renderer renderer;
     Rules rules;
     void tokenBlock(std::string &src, bool top = true, bool bq = false);     // get block tokens
-    void parse();
-    std::string parseToken();
-    std::string parseText();
-    std::string parseInline(std::string& text);
+    void parse();  // generate out from block tokens, it calls parseToken() for each token.
+    std::string parseToken();  // parse current token
+    std::string parseText();   // parse pure text
+    std::string parseInline(std::string& text); //parse inline paragraph
 
     std::string out;   //output html
     Options options;

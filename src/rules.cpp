@@ -6,10 +6,12 @@
 
 using namespace std;
 
-void replace(string &source, string const &name, string val) {
-    val = regex_replace(val, std::regex("(^|[^\\[])\\^"), "$1");   // remove begin mark ^
+
+// consider using only one regex_replace call instead ?
+void replace(string &source, const string &name, const string& val) {
+    string newVal = regex_replace(val, std::regex("(^|[^\\[])\\^"), "$1");   // remove begin mark ^
     for (string::size_type i = 0; (i = source.find(name, i)) != string::npos;) {
-        source.replace(i, name.length(), val);
+        source.replace(i, name.length(), newVal);
         i += val.length();
     }
 }
