@@ -16,22 +16,16 @@ public:
     string type;
     string tag;
     std::vector<std::pair<string, string>> attrs;
-/**
- * Token#nesting -> Number
- *
- * Level change (number in {-1, 0, 1} set), where:
- *
- * -  `1` means the tag is opening
- * -  `0` means the tag is self-closing
- * - `-1` means the tag is closing
- **/
-    int nesting;
+
     int level;
-    string content;
-    string markup;
-    string info;
-    bool isBlock;
-    bool hiden;
+    string language;
+    string text;
+    bool ordered = false;
+    int checked = -1; // -1: not checkbox, 0: not checked, 1: checked
+    bool pre;
+    bool escaped;
+
+    void print() const;
 };
 
 #endif //CPPMARK_TOKEN_H

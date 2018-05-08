@@ -7,28 +7,45 @@
 #include <regex>
 
 #include "parser.h"
-#include "doc.h"
 using namespace std;
 
 
 int main(int argc, char **argv) {
 
-    std::ifstream ifile("../test/main.md");
-    if(!ifile){
+    std::ifstream inFile("../test/paragraph_inline.md");
+    ofstream outFile("../test/single.html");
+    ifstream tmpFile("../test/tmp.html");
+    if(!inFile || !tmpFile || !outFile){
         std::cerr<<"open file failed !"<<std::endl;
         return -1;
     }
     std::stringstream mdSS;
-    mdSS << ifile.rdbuf();
+    mdSS << inFile.rdbuf();
     string mdStr = mdSS.str();
+    string tmp;
+    stringstream tmpSS;
+    tmpSS << tmpFile.rdbuf();
+    tmp = tmpSS.str();
 
-    Doc doc(mdStr);
-    Parser parser("gfm");
-    parser.token(doc);
+    Parser parser;
+    parser.tokenBlock(mdStr);
 
-    for(auto t:doc.tokens){
-        cout<<t.type<<endl;
+    for(const auto& t: parser.tokens){
+        t.print();
+    }
+    for(const auto& l: parser.links){
+        cout<<"link["<<l.first<<"]: "<<"["<<l.second.title<<"]("<<l.second.href<<")"<<endl;
     }
 
+    parser.parse();
+
+
+    string outHtml = regex_replace(tmp,regex("\\{\\{ *body *\\}\\}"),parser.out);
+    outFile << outHtml;
+
+    outFile.close();
+    inFile.close();
+    tmpFile.close();
+    cout<<"finished."<<endl;
     return 0;
 }

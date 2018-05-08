@@ -7,48 +7,58 @@
 
 #include <regex>
 #include <string>
-#include "doc.h"
+#include <unordered_map>
+#include "token.h"
+#include "rules.h"
+#include "options.h"
+#include "renderer.h"
+
+class Link{
+public:
+//    Link(std::string href, std::string title):href(href),title(title){}
+//    Link& operator=(Link& link) = default;
+    string href;
+    string title;
+};
 
 class Parser {
 public:
-    Parser(std::string flavor = "normal");
-    void token(Doc& doc, bool top = true);
-    std::regex newline_re;
-    std::regex code_re;
-    std::regex fences_re;
-    std::regex hr_re;
-    std::regex heading_re;
-    std::regex blockquote_re;
-    std::regex list_re;
-    std::regex item_re;
-    std::regex html_re;
-    std::regex def_re;
-    std::regex lheading_re;
-    std::regex displaymath_re;
-    std::regex paragraph_re;
-    std::regex text_re;
+    Parser(){};
+    Parser(Options& options):options(options),renderer(options){}
+    Renderer renderer;
+    Rules rules;
+    void tokenBlock(std::string &src, bool top = true, bool bq = false);     // get block tokens
+    void parse();
+    std::string parseToken();
+    std::string parseText();
+    std::string parseInline(std::string& text);
+
+    std::string out;   //output html
+    Options options;
+    std::vector<Token> tokens;
+    std::unordered_map<std::string,Link> links;
 
 private:
-    //std::regex sources
-    std::string newline {"^\\n+"};
-    std::string code {"^( {4}[^\\n]+\\n*)+"};
-    std::string fences {"^ *(`{3,}|~{3,})[ \\.]*(\\S+)? *\\n([\\s\\S]*?)\\n? *\\1 *(?:\\n+|$)"};
-    std::string hr {"^( *[-*_]){3,} *(?:\\n+|$)"};
-    std::string heading {"^ *(#{1,6}) +([^\\n]+?) *#* *(?:\\n+|$)"};
-    std::string lheading { "^([^\\n]+)\\n *(=|-){2,} *(?:\\n+|$)"};
-    std::string displaymath {"^ *\\$\\$([\\s\\S]+?)\\$\\$ *"};
-    std::string nptable {""};
-    std::string blockquote {"^( *>[^\\n]+(\\n(?!def)[^\\n]+)*\\n*)+"};
-    std::string list {"^( *)(bull) [\\s\\S]+?(?:hr|def|\\n{2,}(?! )(?!\\1bull )\\n*|\\s*$)"};
-    std::string html {"^ *(?:comment *(?:\\n|\\s*$)|closed *(?:\\n{2,}|\\s*$)|closing *(?:\\n{2,}|\\s*$))"};
-    std::string def {"^ *\\[([^\\]]+)\\]: *<?([^\\s>]+)>?(?: +[\"(]([^\\n]+)[\")])? *(?:\\n+|$)"};
-    std::string table {""};
-    std::string paragraph {
-            "^((?:[^\\n]+\\n?(?!hr|heading|lheading|blockquote|tag|def|displaymath))+)\\n*"};
-    std::string text { "(^[^\\n]+)"};
-    std::string bullet {"(?:[*+-]|\\d+\\.)"};
-    std::string item { "^( *)(bull) [^\\n]*(?:\\n(?!\\1bull )[^\\n]*)*"};
-    std::string checkbox {"^\\[([ x])\\] +"};
+    //tokens access
+    int tokenIndex = -1;
+    Token token;  //current token
+    bool next(){
+        if (tokenIndex + 1 < (int)tokens.size()){
+            tokenIndex ++;
+            token = tokens[tokenIndex];
+            return true;
+        }else{
+            return false;
+        }
+    }
+    bool peek(Token& nToken){
+        if (tokenIndex + 1 < (int)tokens.size()){
+            nToken = tokens[tokenIndex+1];            // preview next token
+            return true;
+        }else{
+            return false;
+        }
+    }
 };
 
 

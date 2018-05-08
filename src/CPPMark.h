@@ -10,7 +10,6 @@
 
 using std::string;
 
-#include "state_block.h"
 
 class State {
     string src;
