@@ -29,7 +29,7 @@ public:
     void parse();  // generate out from block tokens, it calls parseToken() for each token.
     std::string parseToken();  // parse current token
     std::string parseText();   // parse pure text
-    std::string parseInline(std::string& text); //parse inline paragraph
+    std::string parseInline(const std::string& text); //parse inline paragraph
 
     std::string out;   //output html
     Options options;

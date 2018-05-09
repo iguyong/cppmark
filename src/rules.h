@@ -57,7 +57,7 @@ private:
     std::string lheading { "^([^\\n]+)\\n *(=|-){2,} *(?:\\n+|$)"};
     std::string displaymath {"^ *\\$\\$([\\s\\S]+?)\\$\\$ *"};
     std::string nptable {""};
-    std::string blockquote {"^( *>[^\\n]+(\\n(?!def)[^\\n]+)*\\n*)+"};
+    std::string blockquote {"^( *>[^\\n]+(\\n(?!def|\\n)[^\\n]+)*)+"};  //changed
     std::string list {"^( *)(bull) [\\s\\S]+?(?:hr|def|\\n{2,}(?! )(?!\\1bull )\\n*|\\s*$)"};
     std::string html {"^ *(?:comment *(?:\\n|\\s*$)|closed *(?:\\n{2,}|\\s*$)|closing *(?:\\n{2,}|\\s*$))"};
     std::string def {"^ *\\[([^\\]]+)\\]: *<?([^\\s>]+)>?(?: +[\"(]([^\\n]+)[\")])? *(?:\\n+|$)"}; //link reference definition

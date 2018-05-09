@@ -19,9 +19,14 @@ public:
     string text;
     bool ordered = false;
     int checked = -1; // -1: not checkbox, 0: not checked, 1: checked
-    bool pre;
-    bool escaped;
+    bool pre = false;
+    bool escaped = false;
 
+    void reset(){
+        language = string("");
+        ordered = false;
+        checked = -1;
+    }
     void print() const;
 };
 

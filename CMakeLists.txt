@@ -11,3 +11,6 @@ add_executable(tests
         src/rules.cpp
         src/renderer.cpp
         src/options.cpp)
+
+add_executable(testEncoding
+        src/testEncoding.cpp)

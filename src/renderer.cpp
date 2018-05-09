@@ -4,12 +4,14 @@
 
 #include "renderer.h"
 #include <regex>
+#include <utility>
 using namespace std;
 
 
-std::string Renderer::code(std::string& code, std::string lang, bool escaped) {
+std::string Renderer::code(const std::string& text, const std::string& lang, bool escaped) {
+    string code {text};
     if(!escaped){
-        code = escape(code,true);
+        code = escape(text,true);
     }
     if(!options.codeTags) {
         return code;
@@ -21,24 +23,44 @@ std::string Renderer::code(std::string& code, std::string lang, bool escaped) {
     }
 }
 
-std::string Renderer::heading(std::string& text, int level, std::string raw) {
-    std::transform(raw.begin(),raw.end(),raw.begin(),::tolower);
-    regex_replace(raw, regex("[^\\w]+"), "-");
-    return "<h" + to_string(level) + " id=\"" + options.headerPrefix + raw + "\">" + text + "</h" + to_string(level) + ">\n";
+std::string Renderer::heading(const std::string& text, int level, const std::string& raw) {
+    string raw_id {raw};
+    std::transform(raw_id.begin(),raw_id.end(),raw_id.begin(),::tolower);
+    raw_id = regex_replace(raw, regex("[^\\w]+"), "-");
+    return "<h" + to_string(level) + " id=\"" + options.headerPrefix + raw_id + "\">" + text + "</h" + to_string(level) + ">\n";
 }
 
 std::string escape(const std::string &html, bool encode) {
     {
-        std::string res(html);
-        if (encode) {
-            std::regex_replace(res,std::regex("&(?!#?\\w+;)"), "&amp;");
-        }else{
-            std::regex_replace(res,std::regex("&"), "&amp;");
+        std::string res {""};
+        if (html.empty()){
+            return res;
         }
-        std::regex_replace(res,std::regex("<"), "&lt;");
-        std::regex_replace(res,std::regex(">"), "&gt;");
-        std::regex_replace(res,std::regex("\""), "&quot;");
-        std::regex_replace(res,std::regex("'"), "&#39;");
+        if (encode) {
+            res = std::regex_replace(html,std::regex("&(?!#?\\w+;)"), "&amp;");
+        }else{
+            res = std::regex_replace(html,std::regex("&"), "&amp;");
+        }
+        res = std::regex_replace(res,std::regex("<"), "&lt;");
+        res = std::regex_replace(res,std::regex(">"), "&gt;");
+        res = std::regex_replace(res,std::regex("\""), "&quot;");
+        res = std::regex_replace(res,std::regex("'"), "&#39;");
         return res;
     }
+}
+
+std::string unescape(const std::string &html) {
+    string res {""};
+    smatch matchs;
+    regex_search(html,matchs,regex("&([#\\w]+);"));
+    string n = matchs[1].str();
+    string r{""};
+    std::transform(n.begin(),n.end(),n.begin(),::tolower);
+    if (n == "colon"){
+        r = ":";
+    }else if (n[0] == '#'){
+        r = n[1] == 'x' ? std::to_string(std::stol(n.substr(2),nullptr,16)) : n.substr(1);
+    }
+    res = regex_replace(html,regex("&([#\\w]+);"),r);
+    return res;
 }

@@ -11,6 +11,7 @@
 #include "options.h"
 
 std::string escape(const std::string& html, bool encode = false);
+std::string unescape(const std::string& html);
 
 class Renderer {
 public:
@@ -21,17 +22,17 @@ public:
     bool inlink = false;
 
     //code and fences
-    std::string code(std::string &code, std::string lang, bool escaped);
+    std::string code(const std::string &code, const std::string& lang, bool escaped);
 
-    std::string blockquote(std::string quote) {
+    std::string blockquote(const std::string& quote) {
         return "<blockquote>\n" + quote + "</blockquote>\n";
     }
 
-    std::string html(std::string html) { return html; }
+    std::string html(const std::string& html) { return html; }
 
-    std::string heading(std::string& text, int level, std::string raw);
+    std::string heading(const std::string& text, int level, const std::string& raw);
 
-    std::string math(std::string text, bool display) {
+    std::string math(const std::string& text, bool display) {
         if (display) {
             return "<div class=\"displaymath\">" + escape(text, true) + "\n</div>";
         } else {
@@ -39,7 +40,7 @@ public:
         }
     }
 
-    std::string displaymath(std::string text) {
+    std::string displaymath(const std::string& text) {
         return math(text, true);
     }
 
@@ -47,13 +48,13 @@ public:
         return "<hr>\n";
     }
 
-    std::string list(std::string body, bool ordered, bool taskList) {
+    std::string list(const std::string& body, bool ordered, bool taskList) {
         std::string type(ordered ? "ol" : "ul");
         std::string classes(taskList ? " class=\"task-list\"" : "");
         return "<" + type + classes + ">\n" + body + "</" + type + ">\n";
     }
 
-    std::string listitem(std::string text, int checked = -1) {
+    std::string listitem(const std::string& text, int checked = -1) {
         if (checked < 0) {
             return "<li>" + text + "</li>\n";
         }
@@ -61,19 +62,19 @@ public:
                std::string(checked > 0 ? " checked" : "") + ">" + text + "</li>\n";
     }
 
-    std::string paragraph(std::string text){
+    std::string paragraph(const std::string& text){
         return "<p>" + text + "</p>\n";
     }
 
-    std::string strong(std::string text) {
+    std::string strong(const std::string& text) {
         return "<strong>" + text + "</strong>";
     }
 
-    std::string em(std::string text) {
+    std::string em(const std::string& text) {
         return "<em>" + text + "</em>";
     }
 
-    std::string codespan(std::string text) {
+    std::string codespan(const std::string& text) {
         return "<code>" + text + "</code>";
     }
 

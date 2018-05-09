@@ -22,17 +22,26 @@ string mangle(string text){
 
 void Parser::tokenBlock(string &src, bool top, bool bq) {
     //normalize
-    src = regex_replace(src, std::regex("\\r\\n|\\r"), "\n");
-    src = regex_replace(src, std::regex("\\t"), "    ");
-    src = regex_replace(src, std::regex("\\u00a0"), " ");
-    src = regex_replace(src, std::regex("\\u2424"), "\n");
-    src = regex_replace(src, std::regex("(^|\n) +(?=\n|$)"), "$1");   //blank line
-
+//    for(int i = 0;i<src.length();i++){
+//        cout<<i<<": "<<src[i]<<endl;
+//    }
+//    cout<<"before: "<<src<<endl;
+    src = regex_replace(src, regex("\\r\\n|\\r"), "\n");
+    src = regex_replace(src, regex("\\t"), "    ");
+    src = regex_replace(src, regex("\u00a0"), " ");   // do not use "\\u00a0"
+    src = regex_replace(src, regex("\u2424"), "\n");
+    src = regex_replace(src, regex("(^|\\n) +(?=\\n|$)"), "$1");   //blank line
+//    cout<<endl;
+//    for(int i = 0;i<src.length();i++){
+//        cout<<i<<": "<<src[i]<<endl;
+//    }
+//    cout<<"after"<<src<<endl;
+//    return;
     //
     smatch matchs;
-
+    Token t;
     while (!src.empty()) {
-        Token t;
+        t.reset();     // t can be reused because vector.push_back() would copy it
         // newline
         if (std::regex_search(src, matchs, rules.newline_re)) {
             if (matchs[1].str().length() > 1) {
@@ -44,9 +53,10 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
         }
 
         // code
-        if (regex_search(src, matchs, regex("^( {4}[^\\n]+\\n*)+"))) {
+        if (regex_search(src, matchs, rules.code_re)) {
             t.type = "code";
-            t.text = regex_replace(matchs[0].str(), regex("(\\n*) {4}"), "$1");
+            string text = regex_replace(matchs[0].str(), regex("(\\n*) {4}"), "$1");   // mimic / {4}/gm
+            t.text = regex_replace(text, regex("\\n*$"),"");     //striping trailing blank lines
             tokens.push_back(t);
             src = src.substr(matchs[0].str().size());  //chaging src would affect matchs
             continue;
@@ -67,7 +77,7 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
             t.type = "heading";
             t.level = matchs[1].str().size();
             t.text = matchs[2].str();
-            tokens.push_back(t);    // copy (not move)
+            tokens.push_back(t);
             src = src.substr(matchs[0].str().size());
             continue;
         }
@@ -83,6 +93,12 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
         }
 
         //displaymath
+        if (regex_search(src, matchs, rules.displaymath_re)){
+            t.type = "displaymath";
+            t.text = matchs[1].str();
+            tokens.push_back(t);
+            src = src.substr(matchs[0].str().size());
+        }
 
         // hr
         if (regex_search(src, matchs, rules.hr_re)) {
@@ -91,12 +107,12 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
             src = src.substr(matchs[0].str().size());
             continue;
         }
+
         // blockquote
         if (regex_search(src, matchs, rules.blockquote_re)) {
             t.type = "blockquote_start";
             tokens.push_back(t);
             string content = regex_replace(matchs[0].str(), regex("(^|\\n) *> ?"), "$1");
-//            cout<<content<<endl;
             tokenBlock(content, top, true);
             t.type = "blockquote_end";
             tokens.push_back(t);
@@ -137,10 +153,9 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
 
                 //outdent whatever the list item contains. Hacky
                 if(item.find("\n ") != string::npos){
-                    space-= item.length();
+                    space -= item.length();
                     item = regex_replace(item, regex(string("(^|\\n) {1,") + std::to_string(space) +"}"), "$1");
                 }
-//                cout<<item<<endl;
                 bool loose = next || regex_search(item,regex("\\n\\n(?!\\s*$)"));
                 if (i != l-1){
                     next = item[item.length() - 1] == '\n';
@@ -165,7 +180,7 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
         if (regex_search(src, matchs, rules.html_re)) {
             t.type = "html";
             string tmp = matchs[1].str();
-            t.pre = (tmp == "pre" || tmp == "script" || tmp == "style");
+            t.pre = (tmp == "pre" || tmp == "script" || tmp == "style"); // preformatted
             t.text = matchs[0].str();
             tokens.push_back(t);
             src = src.substr(matchs[0].str().size());
@@ -190,7 +205,7 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
             src = src.substr(matchs[0].str().size());
             continue;
         }
-        // text
+        // text (i.e. non top-levl paragraph)
         if (regex_search(src, matchs, rules.text_re)) {
             // Top-level should never reach here.
             t.type = "text";
@@ -200,7 +215,7 @@ void Parser::tokenBlock(string &src, bool top, bool bq) {
             continue;
         }
         if (!src.empty()) {
-            std::cerr << "Infinite loop at:" << std::endl << src << std::endl;
+            std::cerr << "TokenBlock: Infinite loop at:" << std::endl << src << std::endl;
         }
     }
 }
@@ -214,7 +229,6 @@ void Parser::parse() {
 
 string Parser::parseToken(){
     const string &type = token.type;
-    string body("");
     //space
     if (type == "space"){
         return "";
@@ -227,7 +241,7 @@ string Parser::parseToken(){
 
     //heading
     if (type == "heading"){
-        return renderer.heading(token.text,token.level,token.text);
+        return renderer.heading(parseInline(token.text),token.level,token.text);
     }
 
     //displaymath
@@ -242,6 +256,7 @@ string Parser::parseToken(){
 
     //blockquote_start
     if (type == "blockquote_start"){
+        string body {""};
         while(next() && token.type!= "blockquote_end"){
             body += parseToken();
         }
@@ -250,6 +265,7 @@ string Parser::parseToken(){
 
     //list_start
     if (type == "list_start"){
+        string body {""};
         bool taskList = false;
         bool ordered = token.ordered;
         while (next() && token.type != "list_end"){
@@ -263,6 +279,7 @@ string Parser::parseToken(){
 
     //list_item_start
     if (type == "list_item_start"){
+        string body{""};
         while (next() && token.type != "list_item_end"){
             if(token.type == "text"){
                 body += parseText();
@@ -275,6 +292,7 @@ string Parser::parseToken(){
 
     //loose_item_start
     if (type == "loose_item_start") {
+        string body {""};
         while (next() && token.type != "list_item_end"){
             body += parseToken();
         }
@@ -303,6 +321,8 @@ string Parser::parseToken(){
     }
     return "";
 }
+
+// concatenate consecutive block text
 std::string Parser::parseText(){
     string body = token.text;
     Token nToken;
@@ -312,7 +332,10 @@ std::string Parser::parseText(){
     }
     return parseInline(body);
 }
-std::string Parser::parseInline(std::string& src){
+
+
+std::string Parser::parseInline(const std::string& text){
+    string src {text};
     string out("");
     smatch matchs;
     while(!src.empty()){
@@ -327,24 +350,25 @@ std::string Parser::parseInline(std::string& src){
         if (regex_search(src,matchs,rules.autolink_re)){
             string text;
             string href;
+            string matchStr {matchs[1].str()};
             if(matchs[2].str() == "@"){
                 if (matchs[1].str()[6] == ':'){
-                    text = mangle(matchs[1].str().substr(7));
+                    text = mangle(matchStr.substr(7));
                 }else{
-                    text = mangle(matchs[1].str());
+                    text = mangle(matchStr);
                 }
                 href = mangle("mailto:") + text;
             }else{
-                text = escape(matchs[1].str(),false);
+                text = escape(matchStr,false);
                 href = text;
             }
-            out += renderer.link(href,"", text);
+            out += renderer.link(href, "", text);  //no title
             src = src.substr(matchs[0].str().size());
             continue;
         }
 
         //url
-        if (regex_search(src,matchs,rules.url_re)){
+        if (!renderer.inlink && regex_search(src,matchs,rules.url_re)){
             string text = escape(matchs[1].str(),false);
             string href = text;
             out += renderer.link(href,"", text);
@@ -356,7 +380,7 @@ std::string Parser::parseInline(std::string& src){
         if (regex_search(src,matchs,rules.tag_re)){
             if(!renderer.inlink && regex_search(matchs[0].str(),regex("^<a ", std::regex::icase))){
                 renderer.inlink = true;
-            }else if(renderer.inlink && regex_search(matchs[0].str(),regex("^<\\/a ", std::regex::icase))){
+            }else if(renderer.inlink && regex_search(matchs[0].str(),regex("^<\\/a> ", std::regex::icase))){
                 renderer.inlink = false;
             }
             out += matchs[0].str();
@@ -381,9 +405,9 @@ std::string Parser::parseInline(std::string& src){
         }
 
         //reflink, nolink
-        if (regex_search(src,matchs,rules.reflink_re)){
+        if (regex_search(src,matchs,rules.reflink_re) || regex_search(src,matchs,rules.nolink_re)){
             string text;
-            if(matchs[2].str().empty()){
+            if(!matchs[2].str().empty()){
                 text = matchs[2].str();
             }else{
                 text = matchs[1].str();
@@ -402,7 +426,7 @@ std::string Parser::parseInline(std::string& src){
             if(matchs[0].str()[0] != '!'){
                 out += renderer.link(href,title,parseInline(text));
             }else{
-                out += renderer.image(href,title,text);
+                out += renderer.image(href,title,escape(text,false));
             }
             renderer.inlink = false;
             src = src.substr(matchs[0].str().size());
@@ -411,7 +435,7 @@ std::string Parser::parseInline(std::string& src){
 
         // inlinemath
         if (regex_search(src,matchs,rules.inlinemath_re)){
-            out += renderer.inlinemath(matchs[0].str());
+            out += renderer.inlinemath(matchs[1].str());
             src = src.substr(matchs[0].str().size());
             continue;
         }
@@ -451,7 +475,6 @@ std::string Parser::parseInline(std::string& src){
 
         // br
         if (regex_search(src,matchs,rules.br_re)){
-            string text {matchs[0].str()};
             out += renderer.br();
             src = src.substr(matchs[0].str().size());
             continue;
@@ -459,8 +482,7 @@ std::string Parser::parseInline(std::string& src){
 
         //del
         if (regex_search(src,matchs,rules.del_re)){
-            string text {matchs[1].str()};
-            out += renderer.del(parseInline(text));
+            out += renderer.del(parseInline(matchs[1].str()));
             src = src.substr(matchs[0].str().size());
             continue;
         }

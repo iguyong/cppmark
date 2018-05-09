@@ -12,8 +12,8 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
-    std::ifstream inFile("../test/paragraph_inline.md");
-    ofstream outFile("../test/single.html");
+    std::ifstream inFile("../test/encoding.md");
+    ofstream outFile("../test/index.html");
     ifstream tmpFile("../test/tmp.html");
     if(!inFile || !tmpFile || !outFile){
         std::cerr<<"open file failed !"<<std::endl;
@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
     stringstream tmpSS;
     tmpSS << tmpFile.rdbuf();
     tmp = tmpSS.str();
+    mdStr = "a\u00a0b";
 
     Parser parser;
     parser.tokenBlock(mdStr);
